@@ -27,6 +27,7 @@ apps（入口） → reports（HTML） → core（取数/计算/知识体系）
 | `finance_lab.apps.sector_compare` | 各行业龙头股对比表 + 走势/夏普 HTML |
 | `finance_lab.apps.tail_risk_evidence` | 用肥尾/极端日数据证明尾部风险 + HTML |
 | `finance_lab.apps.dcf_sector_compare` | 各行业龙头股自由现金流折现（DCF）现值 vs 市值 + HTML |
+| `finance_lab.apps.irr_npv` | 现金流 NPV / IRR；可手输、CSV，或 A 股持有期自动生成 |
 
 ## 技术选择（给 Agent 的约束）
 
@@ -52,6 +53,11 @@ uv run python -m finance_lab.apps.tail_risk_evidence
 
 # 多行业 DCF 现值 → finance_lab/output/dcf_sector_compare.html
 uv run python -m finance_lab.apps.dcf_sector_compare
+
+# NPV / IRR（默认演示；或 --cf / --csv / --stock）
+uv run python -m finance_lab.apps.irr_npv
+uv run python -m finance_lab.apps.irr_npv --invest 100 --cf 40,40,40 --r 0.10
+uv run python -m finance_lab.apps.irr_npv --stock 300534 --start 20240101 --r 0.08
 ```
 
 知识体系可视化（需本地静态服务，以便加载同目录 JSON）：
