@@ -4,12 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>金融投资 · 名词含义与关系图谱</title>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="icon" href="./favicon.png" type="image/png" sizes="32x32">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root { --bg:#f5f7fb; --panel:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --accent:#2563eb;
          --L1:#2563eb; --L2:#059669; --L3:#d97706; --L4:#dc2626; }
   body { font-family:-apple-system,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif; background:var(--bg); color:var(--ink); line-height:1.6; }
-  header { background:linear-gradient(120deg,#1e3a8a,#2563eb); color:#fff; padding:18px 26px; }
+  header { background:linear-gradient(120deg,#1e3a8a,#2563eb); color:#fff; padding:12px 22px; }
   header h1 { font-size:20px; font-weight:700; }
   header p { font-size:13px; opacity:.85; margin-top:4px; }
   .stat { display:inline-block; background:rgba(255,255,255,.15); border-radius:8px; padding:3px 10px; margin:6px 8px 0 0; font-size:12px; }
@@ -21,10 +23,10 @@
   .lbtn[data-l="L1"].on{background:var(--L1);} .lbtn[data-l="L2"].on{background:var(--L2);}
   .lbtn[data-l="L3"].on{background:var(--L3);} .lbtn[data-l="L4"].on{background:var(--L4);}
   .reset { margin-left:auto; cursor:pointer; color:var(--accent); font-size:13px; border:none; background:none; }
-  .main { display:flex; gap:0; height:calc(100vh - 175px); }
-  .graph-wrap { flex:1 1 auto; position:relative; overflow:hidden; }
+  .main { display:flex; gap:0; height:calc(100vh - 118px); }
+  .graph-wrap { flex:1 1 78%; position:relative; overflow:hidden; min-width:0; }
   #graph { width:100%; height:100%; display:block; background:radial-gradient(circle at 50% 40%, #fbfdff, #eef2f9); }
-  .side { flex:0 0 340px; border-left:1px solid var(--line); background:var(--panel); overflow-y:auto; padding:18px; }
+  .side { flex:0 0 22%; max-width:360px; min-width:260px; border-left:1px solid var(--line); background:var(--panel); overflow-y:auto; padding:18px; }
   .side h2 { font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px; }
   .detail-empty { color:var(--muted); font-size:13px; }
   .badge { display:inline-block; font-size:11px; color:#fff; padding:2px 8px; border-radius:10px; margin-right:6px; }
@@ -48,7 +50,7 @@
   .legend .row { display:flex; align-items:center; gap:7px; margin:3px 0; }
   .legend .sw { width:14px; height:4px; border-radius:2px; }
   .legend .nd { width:11px; height:11px; border-radius:50%; }
-  .node-label { font-size:11.5px; fill:#1f2937; pointer-events:none; font-weight:600; }
+  .node-label { font-size:12.5px; fill:#1f2937; pointer-events:none; font-weight:600; }
   .hint { position:absolute; right:14px; top:12px; font-size:12px; color:var(--muted); background:rgba(255,255,255,.9); padding:6px 10px; border-radius:8px; border:1px solid var(--line); }
   #loader { position:fixed; inset:0; background:rgba(245,247,251,.97); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:99; text-align:center; padding:30px; }
   #loader .box { background:#fff; border:1px solid var(--line); border-radius:14px; padding:28px 34px; max-width:540px; box-shadow:0 10px 40px rgba(0,0,0,.12); }
@@ -79,12 +81,13 @@
     <span class="lbtn on" data-l="L3">扩展应用层</span>
     <span class="lbtn on" data-l="L4">治理管控层</span>
   </div>
+  <button class="reset" id="clearBtn">取消选择</button>
   <button class="reset" id="resetBtn">重置视图</button>
 </div>
 <div class="main">
   <div class="graph-wrap">
     <svg id="graph" preserveAspectRatio="xMidYMid meet"></svg>
-    <div class="hint">拖动节点调整布局 · 点击节点看详情</div>
+    <div class="hint">点击节点看详情 · 再点一次或点空白处 / Esc 取消选择</div>
     <div class="legend" id="legend"></div>
   </div>
   <div class="side">
@@ -104,17 +107,17 @@ const JSON_PATH = './金融投资知识体系.json';
 function init(DATA){
   const SVGNS='http://www.w3.org/2000/svg';
   const svg=document.getElementById('graph');
-  const W=1500,H=1050;
+  const W=1680,H=1120;
   svg.setAttribute('viewBox','0 0 '+W+' '+H);
   const LAYER_COLORS={L1:'#2563eb',L2:'#059669',L3:'#d97706',L4:'#dc2626'};
   const LAYER_NAMES={L1:'基础理论层',L2:'核心业务能力层',L3:'扩展应用层',L4:'治理管控层'};
   const EDGE_STYLE={dependency:{color:'#ef4444',dash:'',arrow:true,label:'依赖'},association:{color:'#94a3b8',dash:'5,5',arrow:false,label:'关联'},composition:{color:'#10b981',dash:'',arrow:true,label:'组成'},subordination:{color:'#3b82f6',dash:'',arrow:true,label:'从属'},evolution:{color:'#8b5cf6',dash:'5,5',arrow:true,label:'演化'}};
   function estyle(t){return EDGE_STYLE[t]||{color:'#9ca3af',dash:'4,4',arrow:false,label:t}; }
 
-  const nodes=DATA.nodes.map((n,i)=>({...n,x:W/2+(Math.random()-0.5)*520,y:H/2+(Math.random()-0.5)*420,vx:0,vy:0,fixed:false}));
+  const nodes=DATA.nodes.map(n=>({...n,x:W/2+(Math.random()-0.5)*W*0.86,y:H/2+(Math.random()-0.5)*H*0.86,vx:0,vy:0,fixed:false}));
   const idx={}; nodes.forEach((n,i)=>idx[n.id]=i);
   const links=DATA.edges.map(e=>({...e,s:idx[e.source],t:idx[e.target]}));
-  nodes.forEach(n=>{ const d=(n.related||[]).length+(n.prerequisites||[]).length; n.r=14+Math.min(d,10)*1.7; });
+  nodes.forEach(n=>{ const d=(n.related||[]).length+(n.prerequisites||[]).length; n.r=18+Math.min(d,10)*2.1; });
 
   const defs=document.createElementNS(SVGNS,'defs'); svg.appendChild(defs);
   Object.keys(EDGE_STYLE).forEach(t=>{ const st=EDGE_STYLE[t]; if(!st.arrow) return;
@@ -135,9 +138,8 @@ function init(DATA){
     const t=document.createElementNS(SVGNS,'text'); t.setAttribute('class','node-label'); t.setAttribute('text-anchor','middle');
     t.setAttribute('dy',n.r+13); t.textContent=n.name; g.appendChild(c); g.appendChild(t); gNodes.appendChild(g); return g; });
 
-  let alpha=1,running=false;
-  const repK=3000,springK=0.03,restLen=130,grav=0.012,damping=0.88;
-  function tick(){
+  const pad=28,repK=5200,springK=0.028,restLen=210,grav=0.0035,damping=0.86;
+  function step(alpha){
     for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){ const a=nodes[i],b=nodes[j];
       let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy||0.01,d=Math.sqrt(d2),f=repK/d2,fx=dx/d*f,fy=dy/d*f;
       a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy; }
@@ -145,11 +147,13 @@ function init(DATA){
       let f=(d-restLen)*springK,fx=dx/d*f,fy=dy/d*f; a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy; });
     nodes.forEach(n=>{ if(n.fixed){n.vx=0;n.vy=0;return;} n.vx+=(W/2-n.x)*grav; n.vy+=(H/2-n.y)*grav;
       n.vx*=damping;n.vy*=damping; n.x+=n.vx*alpha;n.y+=n.vy*alpha;
-      n.x=Math.max(n.r,Math.min(W-n.r,n.x)); n.y=Math.max(n.r,Math.min(H-n.r,n.y)); });
-    alpha*=0.99; if(alpha<0.02) alpha=0.02; draw();
-    if(alpha>0.022||dragNode) requestAnimationFrame(tick); else running=false;
+      n.x=Math.max(n.r+pad,Math.min(W-n.r-pad,n.x)); n.y=Math.max(n.r+pad,Math.min(H-n.r-pad,n.y)); });
   }
-  function restart(){ alpha=0.85; if(!running){running=true; requestAnimationFrame(tick);} }
+  function settle(){
+    let alpha=1;
+    for(let k=0;k<420;k++){ step(alpha); alpha*=0.988; }
+    draw();
+  }
   function draw(){ links.forEach((l,i)=>{ const a=nodes[l.s],b=nodes[l.t];
     linkEls[i].setAttribute('x1',a.x);linkEls[i].setAttribute('y1',a.y);linkEls[i].setAttribute('x2',b.x);linkEls[i].setAttribute('y2',b.y); });
     nodes.forEach((n,i)=>{ nodeEls[i].setAttribute('transform','translate('+n.x+','+n.y+')'); }); }
@@ -192,8 +196,17 @@ function init(DATA){
       +'<div class="meta-row"><b>应用场景</b><div class="chips">'+sc+'</div></div>';
     document.querySelectorAll('#detail .chip[data-name]').forEach(ch=>{ ch.onclick=()=>{ const t=ch.getAttribute('data-name'); const tn=nodes.find(x=>x.name===t); if(tn) selectNode(tn.id); }; });
   }
-  function selectNode(id){ selectedId=id; showDetail(id); render();
-    document.querySelectorAll('.card').forEach(c=>{ c.style.outline=(c.getAttribute('data-id')===id)?'2px solid var(--accent)':'none'; }); }
+  function clearSelection(){
+    selectedId=null;
+    document.getElementById('detail').innerHTML='<p class="detail-empty">在左侧图谱中点击一个名词，或点击下方卡片，这里会显示它的完整定义、前置依赖、关联术语与应用场景。</p>';
+    document.querySelectorAll('.card').forEach(c=>c.style.outline='none');
+    render();
+  }
+  function selectNode(id){
+    if(selectedId===id){ clearSelection(); return; }
+    selectedId=id; showDetail(id); render();
+    document.querySelectorAll('.card').forEach(c=>{ c.style.outline=(c.getAttribute('data-id')===id)?'2px solid var(--accent)':'none'; });
+  }
 
   const grid=document.getElementById('cardGrid');
   ['L1','L2','L3','L4'].forEach(L=>{ const grp=nodes.filter(n=>n.layer===L); if(!grp.length) return;
@@ -213,17 +226,20 @@ function init(DATA){
   document.getElementById('search').addEventListener('input',e=>{ query=e.target.value.trim(); render(); });
   document.querySelectorAll('.lbtn').forEach(b=>{ b.onclick=()=>{ const L=b.getAttribute('data-l');
     if(activeLayers.has(L)){activeLayers.delete(L);b.classList.remove('on');} else {activeLayers.add(L);b.classList.add('on');} render(); }; });
-  document.getElementById('resetBtn').onclick=()=>{ selectedId=null;query='';document.getElementById('search').value='';
+  document.getElementById('clearBtn').onclick=()=>clearSelection();
+  document.getElementById('resetBtn').onclick=()=>{ query='';document.getElementById('search').value='';
     activeLayers=new Set(['L1','L2','L3','L4']); document.querySelectorAll('.lbtn').forEach(b=>b.classList.add('on'));
-    document.getElementById('detail').innerHTML='<p class="detail-empty">在左侧图谱中点击一个名词，或点击下方卡片，这里会显示它的完整定义、前置依赖、关联术语与应用场景。</p>';
-    document.querySelectorAll('.card').forEach(c=>c.style.outline='none'); render(); };
+    clearSelection(); };
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') clearSelection(); });
 
   let dragNode=null,dragMoved=false,downX=0,downY=0;
   function toSVG(evt){ const pt=svg.createSVGPoint(); pt.x=evt.clientX; pt.y=evt.clientY; return pt.matrixTransform(svg.getScreenCTM().inverse()); }
   nodeEls.forEach((g,i)=>{ g.addEventListener('pointerdown',e=>{ dragNode=nodes[i];dragMoved=false;dragNode.fixed=true; const p=toSVG(e);downX=p.x;downY=p.y;g.setPointerCapture(e.pointerId); });
-    g.addEventListener('pointermove',e=>{ if(dragNode!==nodes[i])return; const p=toSVG(e); if(Math.abs(p.x-downX)>3||Math.abs(p.y-downY)>3)dragMoved=true; dragNode.x=p.x;dragNode.y=p.y; if(!running){running=true;requestAnimationFrame(tick);} });
-    g.addEventListener('pointerup',e=>{ if(dragNode!==nodes[i])return; dragNode.fixed=false; if(!dragMoved)selectNode(dragNode.id); dragNode=null; }); });
-  restart(); render();
+    g.addEventListener('pointermove',e=>{ if(dragNode!==nodes[i])return; const p=toSVG(e); if(Math.abs(p.x-downX)>3||Math.abs(p.y-downY)>3)dragMoved=true; dragNode.x=p.x;dragNode.y=p.y; draw(); });
+    g.addEventListener('pointerup',e=>{ if(dragNode!==nodes[i])return; dragNode.fixed=false; if(!dragMoved)selectNode(dragNode.id); dragNode=null; });
+    g.addEventListener('click',e=>e.stopPropagation()); });
+  svg.addEventListener('click',()=>clearSelection());
+  settle(); render();
 }
 
 // ============ 加载器：优先 fetch，失败则弹出文件选择兜底 ============

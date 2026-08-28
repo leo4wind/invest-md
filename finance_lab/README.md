@@ -29,6 +29,7 @@ core/        核心：路径、知识体系、AKShare 取数、指标与尾部�
 | `core/tail_risk.py` | 肥尾 / VaR / 回撤检验 |
 | `core/dcf.py` | 自由现金流折现（FCFF-DCF） |
 | `core/irr_npv.py` | 净现值 NPV / 内部收益率 IRR |
+| `core/per_capita.py` | 人均创利（归母净利润 / 员工人数） |
 | `core/samples.py` | 各行业龙头股样本（`SECTOR_LEADERS` / `SECTOR_SAMPLES`） |
 | `reports/*.py` | HTML 模板渲染 |
 | `apps/*.py` | **唯一推荐的运行入口** |
@@ -43,6 +44,7 @@ core/        核心：路径、知识体系、AKShare 取数、指标与尾部�
 | `python -m finance_lab.apps.tail_risk_evidence` | **证明尾部风险**：超额峰度、极端日 vs 正态、VaR/回撤 + HTML |
 | `python -m finance_lab.apps.dcf_sector_compare` | **DCF 现值**：各行业龙头股自由现金流折现，现值 vs 市值 + HTML |
 | `python -m finance_lab.apps.irr_npv` | **NPV / IRR**：手输或 CSV 现金流，或按 A 股买卖价自动算 |
+| `python -m finance_lab.apps.per_capita_profit` | **人均创利**：龙头股归母净利润 / 员工人数 + HTML |
 
 示例：
 
@@ -54,4 +56,6 @@ uv run python -m finance_lab.apps.dcf_sector_compare
 uv run python -m finance_lab.apps.irr_npv
 uv run python -m finance_lab.apps.irr_npv --invest 100 --cf 40,40,40 --r 0.10
 uv run python -m finance_lab.apps.irr_npv --stock 300534 --start 20240101 --r 0.08
+uv run python -m finance_lab.apps.per_capita_profit
+uv run python -m finance_lab.apps.per_capita_profit --year 2025
 ```

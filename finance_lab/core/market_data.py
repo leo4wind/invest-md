@@ -177,3 +177,97 @@ def fetch_latest_price_and_shares(symbol: str) -> tuple[float, float]:
     if price <= 0 or shares <= 0:
         raise RuntimeError(f"价格或股本异常: {symbol}")
     return price, shares
+
+
+def _code6(symbol: str) -> str:
+    """sh600519 / SZ002594 / 600519 → 600519。"""
+    digits = "".join(ch for ch in symbol if ch.isdigit())
+    if len(digits) < 6:
+        raise ValueError(f"无法解析股票代码: {symbol!r}")
+    return digits[-6:]
+
+
+def fetch_employee_count(symbol: str) -> int:
+    """
+    在职员工人数（东财 F10 公司概况 EMP_NUM）。
+
+    AKShare 的雪球概况接口目前不稳定，这里直接读东财 PageAjax，
+    口径通常是最近年报期末在职人数。
+    """
+    _disable_system_proxy()
+    em = sina_to_em_symbol(symbol)
+    url = "https://emweb.securities.eastmoney.com/PC_HSF10/CompanySurvey/PageAjax"
+    r = requests.get(url, params={"code": em}, timeout=20)
+    r.raise_for_status()
+    payload = r.json()
+    rows = payload.get("jbzl") or []
+    if not rows:
+        raise RuntimeError(f"未取到公司概况: {symbol}")
+    emp = rows[0].get("EMP_NUM")
+    if emp is None or float(emp) <= 0:
+        raise RuntimeError(f"员工人数缺失: {symbol}")
+    return int(float(emp))
+
+
+def _parse_yi_text(value: object) -> float:
+    """把同花顺『326.19亿』转成元。"""
+    s = str(value).strip().replace(",", "")
+    if not s or s in {"False", "None", "nan", "--"}:
+        raise ValueError(f"无法解析金额: {value!r}")
+    unit = 1.0
+    if s.endswith("万亿"):
+        unit, s = 1e12, s[:-2]
+    elif s.endswith("亿"):
+        unit, s = 1e8, s[:-1]
+    elif s.endswith("万"):
+        unit, s = 1e4, s[:-1]
+    return float(s) * unit
+
+
+def fetch_annual_parent_net_profit(
+    symbol: str,
+    year: int | None = None,
+) -> tuple[int, float]:
+    """
+    年度归母净利润（元）。
+
+    优先东财利润表 PARENT_NETPROFIT；失败则用同花顺财务摘要「净利润」（年报口径与归母一致）。
+    返回 (报告年份, 金额元)。
+    """
+    _disable_system_proxy()
+    em = sina_to_em_symbol(symbol)
+
+    try:
+        raw = ak.stock_profit_sheet_by_yearly_em(symbol=em)
+        if raw is not None and not raw.empty and "PARENT_NETPROFIT" in raw.columns:
+            df = raw.copy()
+            df["REPORT_DATE"] = pd.to_datetime(df["REPORT_DATE"])
+            df["year"] = df["REPORT_DATE"].dt.year.astype(int)
+            df["profit"] = pd.to_numeric(df["PARENT_NETPROFIT"], errors="coerce")
+            df = df.dropna(subset=["profit"]).sort_values("year")
+            if year is not None:
+                hit = df[df["year"] == year]
+                if hit.empty:
+                    raise RuntimeError(f"利润表无 {year} 年数据: {symbol}")
+                row = hit.iloc[-1]
+            else:
+                row = df.iloc[-1]
+            return int(row["year"]), float(row["profit"])
+    except Exception:
+        pass
+
+    ths = ak.stock_financial_abstract_ths(symbol=_code6(symbol), indicator="按年度")
+    if ths is None or ths.empty:
+        raise RuntimeError(f"未取到年度净利润: {symbol}")
+    out = ths.copy()
+    out["year"] = pd.to_numeric(out["报告期"].astype(str).str[:4], errors="coerce")
+    out = out.dropna(subset=["year"])
+    out["year"] = out["year"].astype(int)
+    if year is not None:
+        hit = out[out["year"] == year]
+        if hit.empty:
+            raise RuntimeError(f"财务摘要无 {year} 年数据: {symbol}")
+        row = hit.iloc[-1]
+    else:
+        row = out.sort_values("year").iloc[-1]
+    return int(row["year"]), _parse_yi_text(row["净利润"])
